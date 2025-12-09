@@ -1,4 +1,4 @@
-from OLD.utils import generate_pdf_report
+from utils import generate_pdf_report
 
 from ..models import AnalysisRun, Report
 
@@ -55,4 +55,3 @@ class ReportService:
         self.session.add(report)
         self.session.commit()
         return report
-

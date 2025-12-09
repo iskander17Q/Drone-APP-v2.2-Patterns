@@ -2,7 +2,7 @@
 
 ## Обзор
 Данный каталог содержит монолитную серверную реализацию, повторяющую
-функциональность настольного приложения (`OLD/main.py`) и описанную в
+функциональность настольного приложения (`DesignPatterns_V3/main.py`) и описанную в
 `ARCHITECTURE.md`. Стек включает:
 - Flask REST API (`app/`) с сущностями `Imagery`, `AnalysisRun`, `Heatmap`, `Report`
 - Celery задачи (`tasks/`) для анализа изображений и генерации PDF-отчётов
@@ -11,13 +11,13 @@
 
 ## Быстрый старт (локально)
 ```bash
-cd OLD/monolith
+cd DesignPatterns_V3/monolith
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 export FLASK_APP=manage.py
 flask init-db      # создаёт таблицы
 python run.py      # запускает Flask (http://127.0.0.1:5000)
-celery -A OLD.monolith.celery_app.celery_app worker --loglevel=info
+celery -A DesignPatterns_V3.monolith.celery_app.celery_app worker --loglevel=info
 ```
 Для отладки можно включить синхронное выполнение задач:
 `export CELERY_TASK_ALWAYS_EAGER=1`.
@@ -51,7 +51,7 @@ docker-compose.yml  # Инфраструктура (web + worker + Redis + Postg
 ## Поток данных
 1. `POST /imagery` сохраняет файл и создаёт запись `Imagery`.
 2. `POST /analysis-runs` добавляет `AnalysisRun` и ставит в очередь Celery-задачу `run_analysis_task`.
-3. Задача использует `OLD.image_processing` и `OLD.utils` для расчёта индексов/теплокарт, записывает `Heatmap`, обновляет статистику по зонам.
+3. Задача использует общий фасад анализа (`patterns.facade.AnalysisFacade`) и утилиты из корневого пакета для расчёта индексов/теплокарт, записывает `Heatmap`, обновляет статистику по зонам.
 4. Если `auto_report=true`, планируется `generate_report_task`, который собирает PDF с исходником, тепловой картой и текстовым отчётом.
 
 ## Настройки окружения
@@ -64,5 +64,4 @@ docker-compose.yml  # Инфраструктура (web + worker + Redis + Postg
 ## Тестовые сценарии
 - `tests/local/http` – curl/postman коллекции (TODO).
 Пока покрытие тестами отсутствует; рекомендуется начать с e2e через API.
-
 

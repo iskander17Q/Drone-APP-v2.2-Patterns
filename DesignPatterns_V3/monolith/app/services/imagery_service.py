@@ -5,7 +5,7 @@ from uuid import uuid4
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
-from OLD.utils import get_gps_from_image
+from utils import get_gps_from_image
 
 from ..extensions import db
 from ..models import Imagery
@@ -68,4 +68,3 @@ class ImageryService:
 
     def get(self, imagery_id: str) -> Imagery:
         return Imagery.query.get_or_404(imagery_id)
-

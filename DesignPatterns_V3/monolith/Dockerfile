@@ -6,13 +6,12 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-COPY OLD/monolith/requirements.txt requirements.txt
+COPY DesignPatterns_V3/monolith/requirements.txt requirements.txt
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . .
 
-ENV FLASK_APP=OLD/monolith/manage.py
+ENV FLASK_APP=DesignPatterns_V3/monolith/manage.py
 
-CMD ["flask", "--app", "OLD/monolith/manage.py", "run", "--host=0.0.0.0", "--port=5000"]
-
+CMD ["flask", "--app", "DesignPatterns_V3/monolith/manage.py", "run", "--host=0.0.0.0", "--port=5000"]
 

@@ -2,12 +2,8 @@ from typing import Dict, Optional
 
 from flask import current_app
 
-from OLD.image_processing import (
-    classify_index,
-    compute_indices,
-    generate_heatmap,
-    load_image,
-)
+from patterns import AnalysisFacade
+from patterns.settings import AnalysisOptions
 
 from ..models import AnalysisRun, Heatmap, Imagery
 from .storage_service import StorageService
@@ -17,6 +13,7 @@ class AnalysisService:
     def __init__(self, session, storage: StorageService):
         self.session = session
         self.storage = storage
+        self.facade = AnalysisFacade()
 
     def create_run(
         self,
@@ -45,36 +42,31 @@ class AnalysisService:
         run.status = "running"
         self.session.commit()
 
-        imagery_path = self.storage.absolute_path(run.imagery.stored_path)
-        image = load_image(imagery_path)
-        indices = compute_indices(image)
-
         index_type = run.index_type or "NDVI_emp"
-        if index_type not in indices:
-            raise ValueError(f"Индекс {index_type} не был вычислен")
-
-        index_map = indices[index_type]
         heatmap_filename = f"{run.id}_{index_type}.png"
         heatmap_relative = self.storage.build_relative("heatmaps", heatmap_filename)
         heatmap_absolute = self.storage.absolute_path(heatmap_relative)
-        generate_heatmap(index_map, heatmap_absolute)
+        result = self.facade.analyze_image(
+            self.storage.absolute_path(run.imagery.stored_path),
+            index_type=index_type,
+            options=self._options_from_payload(run.options),
+            heatmap_path=heatmap_absolute,
+        )
 
         heatmap = Heatmap(
             analysis_run=run,
             index_type=index_type,
             file_path=heatmap_relative,
-            min_value=float(index_map.min()),
-            max_value=float(index_map.max()),
+            min_value=float(result.index_map.min()),
+            max_value=float(result.index_map.max()),
         )
         self.session.add(heatmap)
-
-        distribution, conclusion = classify_index(index_map)
         stats = {
-            "distribution": distribution,
-            "conclusion": conclusion,
-            "min": float(index_map.min()),
-            "max": float(index_map.max()),
-            "mean": float(index_map.mean()),
+            "distribution": result.stats,
+            "conclusion": result.conclusion,
+            "min": float(result.index_map.min()),
+            "max": float(result.index_map.max()),
+            "mean": float(result.index_map.mean()),
         }
         run.stats = stats
         run.status = "completed"
@@ -92,3 +84,10 @@ class AnalysisService:
         run.error_message = message
         self.session.commit()
 
+    def _options_from_payload(self, payload) -> AnalysisOptions | None:
+        if not payload:
+            return None
+        try:
+            return AnalysisOptions(**payload)
+        except TypeError:
+            return None

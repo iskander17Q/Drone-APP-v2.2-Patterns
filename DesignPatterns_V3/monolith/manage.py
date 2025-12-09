@@ -1,9 +1,15 @@
-import click
+import sys
+from pathlib import Path
 
+import click
 from flask.cli import FlaskGroup, with_appcontext
 
-from OLD.monolith.app import create_app
-from OLD.monolith.app.extensions import db
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from app import create_app
+from app.extensions import db
 
 
 def create_monolith():
@@ -23,4 +29,3 @@ def init_db():
 
 if __name__ == "__main__":
     cli()
-

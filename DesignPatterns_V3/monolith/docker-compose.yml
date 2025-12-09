@@ -4,15 +4,15 @@ services:
   web:
     build:
       context: ../..
-      dockerfile: OLD/monolith/Dockerfile
-    command: flask --app OLD/monolith/manage.py run --host=0.0.0.0 --port=5000
+      dockerfile: DesignPatterns_V3/monolith/Dockerfile
+    command: flask --app DesignPatterns_V3/monolith/manage.py run --host=0.0.0.0 --port=5000
     env_file:
       - env.example
     environment:
       - DATABASE_URL=postgresql+psycopg2://imagery:imagery@postgres:5432/imagery
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
-      - STORAGE_ROOT=/app/OLD/monolith/storage
+      - STORAGE_ROOT=/app/DesignPatterns_V3/monolith/storage
     volumes:
       - ../..:/app
     ports:
@@ -24,15 +24,15 @@ services:
   worker:
     build:
       context: ../..
-      dockerfile: OLD/monolith/Dockerfile
-    command: celery -A OLD.monolith.celery_app.celery_app worker --loglevel=INFO
+      dockerfile: DesignPatterns_V3/monolith/Dockerfile
+    command: celery -A DesignPatterns_V3.monolith.celery_app.celery_app worker --loglevel=INFO
     env_file:
       - env.example
     environment:
       - DATABASE_URL=postgresql+psycopg2://imagery:imagery@postgres:5432/imagery
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
-      - STORAGE_ROOT=/app/OLD/monolith/storage
+      - STORAGE_ROOT=/app/DesignPatterns_V3/monolith/storage
     volumes:
       - ../..:/app
     depends_on:
@@ -42,15 +42,15 @@ services:
   beat:
     build:
       context: ../..
-      dockerfile: OLD/monolith/Dockerfile
-    command: celery -A OLD.monolith.celery_app.celery_app beat --loglevel=INFO
+      dockerfile: DesignPatterns_V3/monolith/Dockerfile
+    command: celery -A DesignPatterns_V3.monolith.celery_app.celery_app beat --loglevel=INFO
     env_file:
       - env.example
     environment:
       - DATABASE_URL=postgresql+psycopg2://imagery:imagery@postgres:5432/imagery
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
-      - STORAGE_ROOT=/app/OLD/monolith/storage
+      - STORAGE_ROOT=/app/DesignPatterns_V3/monolith/storage
     volumes:
       - ../..:/app
     depends_on:
@@ -100,4 +100,3 @@ services:
 volumes:
   pgdata:
   minio_data:
-

@@ -36,11 +36,12 @@ class AnalysisCommand:
 class LoadImageryCommand(AnalysisCommand):
     """Loads imagery into the context."""
 
-    def __init__(self, loader):
-        self.loader = loader
+    def __init__(self, loader_factory):
+        self.loader_factory = loader_factory
 
     def execute(self, ctx: AnalysisContext) -> None:
-        ctx.image = self.loader(ctx.source_path, ctx.options)
+        loader = self.loader_factory(ctx.options)
+        ctx.image = loader.load(ctx.source_path)
 
 
 class ComputeIndicesCommand(AnalysisCommand):
