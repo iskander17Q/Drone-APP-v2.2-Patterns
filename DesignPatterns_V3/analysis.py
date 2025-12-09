@@ -2,72 +2,25 @@ import cv2
 import numpy as np
 import rawpy
 
-def load_image(file_path):
+from patterns.image_loader import build_loader
+from patterns.indices import SpectralIndexCalculator
+from patterns.settings import AnalysisOptions
+
+_calculator = SpectralIndexCalculator()
+
+
+def load_image(file_path, options: AnalysisOptions | None = None):
     """
-    Загружает изображение из файла.
-    Поддерживаемые форматы: JPG, PNG, BMP и RAW (через rawpy).
-    Возвращает numpy-массив формата (H, W, 3) в RGB.
+    Загружает изображение из файла, применяя декораторы в зависимости от настроек.
     """
-    file_path_lower = file_path.lower()
-    if file_path_lower.endswith(('.raw', '.dng', '.nef', '.cr2', '.arw')):
-        # Если формат RAW – используем rawpy
-        with rawpy.imread(file_path) as raw:
-            rgb = raw.postprocess(output_bps=8)
-        image = rgb
-    else:
-        # Читаем изображение через OpenCV (BGR -> RGB)
-        img_bgr = cv2.imread(file_path)
-        if img_bgr is None:
-            raise RuntimeError("Не удалось загрузить изображение.")
-        image = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-    return image
+    loader = build_loader(options)
+    return loader.load(file_path)
 
 def compute_indices(image):
     """
-    Вычисляет набор индексов растительности на основе RGB-изображения.
-    Возвращает словарь { "NDVI_emp": ..., "VARI": ..., "GLI": ..., "ExG": ..., "CIVE": ..., "MGRVI": ... }.
-    
-    Примерный псевдо-GNDVI (используя зелёный канал вместо NIR):
-      GNDVI_emp = (G - G) / (G + G) = 0 (бессмысленно),
-    поэтому если у вас нет NIR, GNDVI обычно не имеет смысла.
-    Но можно добавить любую другую формулу по аналогии.
+    Вычисляет набор индексов растительности на основе выбранной стратегии.
     """
-    image = image.astype('float32')
-    R = image[:, :, 0]
-    G = image[:, :, 1]
-    B = image[:, :, 2]
-    epsilon = 1e-6
-    
-    indices = {}
-    # Приближённый NDVI (замена NIR на G)
-    ndvi_emp = (G - R) / (G + R + epsilon)
-    indices["NDVI_emp"] = ndvi_emp
-    
-    # VARI
-    vari = (G - R) / (G + R - B + epsilon)
-    indices["VARI"] = vari
-    
-    # GLI
-    gli = (2 * G - R - B) / (2 * G + R + B + epsilon)
-    indices["GLI"] = gli
-    
-    # ExG (Excess Green)
-    exg = 2 * G - R - B
-    indices["ExG"] = exg
-    
-    # CIVE
-    cive = 0.441 * R - 0.881 * G + 0.385 * B + 18.78745
-    indices["CIVE"] = cive
-    
-    # MGRVI
-    mgrvi = (G**2 - R**2) / (G**2 + R**2 + epsilon)
-    indices["MGRVI"] = mgrvi
-    
-    # Если хочется псевдо-GNDVI, можно добавить, но без NIR он не совсем корректен:
-    # gndvi_emp = (G - G) / (G + G + epsilon) # это даст 0, просто пример
-    # indices["GNDVI_emp"] = gndvi_emp
-    
-    return indices
+    return _calculator.compute_all(image.astype("float32"))
 
 def generate_heatmap(index_map, output_path):
     """

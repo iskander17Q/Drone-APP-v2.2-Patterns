@@ -1,10 +1,12 @@
 import os
-from PIL import Image, ExifTags
 from datetime import datetime
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
+
+from PIL import Image, ExifTags
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+
+from patterns.adapter import GPSData, GpsMetadataAdapter
+from patterns.report_builder import ReportBuilder, ReportDirector, ReportPayload
 
 def get_gps_from_image(file_path):
     """
@@ -24,23 +26,10 @@ def get_gps_from_image(file_path):
         if "GPSInfo" not in exif:
             return None
         gps_info = exif["GPSInfo"]
-        
-        def convert_to_degrees(value):
-            d = value[0][0] / value[0][1]
-            m = value[1][0] / value[1][1]
-            s = value[2][0] / value[2][1]
-            return d + (m / 60.0) + (s / 3600.0)
-        
-        lat = convert_to_degrees(gps_info[2]) if 2 in gps_info else None
-        lon = convert_to_degrees(gps_info[4]) if 4 in gps_info else None
-        
-        lat_ref = gps_info[1] if 1 in gps_info else "N"
-        lon_ref = gps_info[3] if 3 in gps_info else "E"
-        if lat and lat_ref.upper() != "N":
-            lat = -lat
-        if lon and lon_ref.upper() != "E":
-            lon = -lon
-        return {"latitude": lat, "longitude": lon}
+        gps_data = GpsMetadataAdapter.convert(gps_info)
+        if gps_data.is_valid():
+            return gps_data.to_dict()
+        return None
     except Exception as e:
         # Если возникает ошибка, можно записать её в лог
         return None
@@ -63,45 +52,21 @@ def generate_pdf_report(pdf_path, original_image_path, heatmap_image_path, repor
         # Если регистрация шрифта не удалась, выводим сообщение в консоль
         print("Не удалось зарегистрировать шрифт DejaVuSans. Проверьте наличие файла:", font_path)
     
-    c = canvas.Canvas(pdf_path, pagesize=A4)
-    width, height = A4  # Размер страницы A4 (595 x 842 точек)
-    
-    # Заголовок и дата анализа
-    c.setFont("DejaVuSans", 20)
-    c.drawCentredString(width / 2, height - 50, "Отчет по анализу состояния поля")
-    
-    c.setFont("DejaVuSans", 12)
-    current_date = datetime.now().strftime("%d.%m.%Y %H:%M")
-    c.drawCentredString(width / 2, height - 70, f"Дата анализа: {current_date}")
-    
-    # Вставка исходного изображения
-    try:
-        c.drawImage(original_image_path, 50, height - 350, width=250, height=250, preserveAspectRatio=True)
-        c.drawString(50, height - 360, "Исходное изображение")
-    except Exception as e:
-        c.drawString(50, height - 350, "Не удалось загрузить исходное изображение.")
-    
-    # Вставка тепловой карты
-    try:
-        c.drawImage(heatmap_image_path, 320, height - 350, width=250, height=250, preserveAspectRatio=True)
-        c.drawString(320, height - 360, f"Тепловая карта ({index_type})")
-    except Exception as e:
-        c.drawString(320, height - 350, "Не удалось загрузить тепловую карту.")
-    
-    # Текстовый отчет
-    text_obj = c.beginText()
-    text_obj.setTextOrigin(50, height - 370)
-    text_obj.setFont("DejaVuSans", 12)
-    for line in report_text.splitlines():
-        text_obj.textLine(line)
-    c.drawText(text_obj)
-    
-    # Вывод GPS-данных (если имеются)
-    if gps:
-        gps_text = f"GPS данные: Широта {gps.get('latitude', 'N/A')}, Долгота {gps.get('longitude', 'N/A')}"
-    else:
-        gps_text = "GPS данные: не обнаружены"
-    c.drawString(50, 50, gps_text)
-    
-    c.showPage()
-    c.save()
+    def gps_to_text(data) -> str:
+        if isinstance(data, GPSData):
+            return data.to_display()
+        if data and data.get("latitude") is not None and data.get("longitude") is not None:
+            return f"GPS данные: Широта {data.get('latitude')}, Долгота {data.get('longitude')}"
+        return "GPS данные: не обнаружены"
+
+    payload = ReportPayload(
+        pdf_path=pdf_path,
+        original_image_path=original_image_path,
+        heatmap_image_path=heatmap_image_path,
+        report_text=report_text,
+        gps_text=gps_to_text(gps),
+        index_type=index_type,
+    )
+    builder = ReportBuilder(payload)
+    director = ReportDirector(builder)
+    director.build()
