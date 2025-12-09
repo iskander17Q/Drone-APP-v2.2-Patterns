@@ -1,22 +1,22 @@
-import sys
 import os
-import cv2
-import numpy as np
-from PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5.QtCore import Qt
-import matplotlib.pyplot as plt
+import sys
 import datetime
-from PyQt5.QtGui import QIcon, QPixmap
 
-# Импортируем функции анализа из analysis.py
-from analysis import load_image, compute_indices, generate_heatmap, classify_index
-from utils import get_gps_from_image, generate_pdf_report
-from styles import (BUTTON_STYLE, MENU_STYLE, MAIN_WINDOW_STYLE, 
-                   CROP_THRESHOLDS, TRANSLATIONS, SPECTRAL_INDEX_DESCRIPTIONS)
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap
 
-# Импорт ресурсов и функций
-from resources import BUTTON_STYLE, MENU_STYLE, MAIN_WINDOW_STYLE, CROP_THRESHOLDS, TRANSLATIONS, SPECTRAL_INDEX_DESCRIPTIONS
-from image_processing import load_image, compute_indices, generate_heatmap, classify_index
+from patterns import AnalysisFacade, AppSettings
+from patterns.adapter import GPSData
+from utils import get_gps_from_image
+from resources import (
+    BUTTON_STYLE,
+    MENU_STYLE,
+    MAIN_WINDOW_STYLE,
+    CROP_THRESHOLDS,
+    TRANSLATIONS,
+    SPECTRAL_INDEX_DESCRIPTIONS,
+)
 
 class MainMenu(QtWidgets.QWidget):
     def __init__(self, parent=None):
