@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import rawpy
 
 from patterns.image_loader import build_loader
 from patterns.indices import SpectralIndexCalculator
