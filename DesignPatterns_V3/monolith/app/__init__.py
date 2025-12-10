@@ -1,5 +1,7 @@
 from flask import Flask
 
+from patterns import StorageProxy
+
 from .config import Config
 from .extensions import init_extensions
 from .routes.health import bp as health_bp
@@ -21,10 +23,10 @@ def create_app(config_object=Config):
     app.config.from_object(config_object)
 
     init_extensions(app)
-    storage_service = StorageService(app.config["STORAGE_ROOT"])
+    storage_backend = StorageService(app.config["STORAGE_ROOT"])
+    storage_service = StorageProxy(storage_backend)
     storage_service.ensure_directories()
     app.extensions["storage_service"] = storage_service
 
     register_blueprints(app)
     return app
-
